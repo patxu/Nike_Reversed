@@ -22,107 +22,111 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.Arrays;
 
+import com.pat_ubuntu.nike_reversed.Utils.Logger; //added utils logger
+
 public class CopperheadPacket
 {
-  public static final int MAX_PACKET_SIZE = 63;
-  private static final String MSG_INVALID_BUFFER_SIZE = "Invalid packet buffer size";
-  private static final String TAG = "CopperheadPacket";
-  private static final String ZONE = "LogicalLink";
-  private static byte mTag = 32;
-  private byte[] mBuffer;
+    public static final int MAX_PACKET_SIZE = 63;
+    private static final String MSG_INVALID_BUFFER_SIZE = "Invalid packet buffer size";
+    private static final String TAG = "CopperheadPacket";
+    private static final String ZONE = "LogicalLink";
+    private static byte mTag = 32;
+    private byte[] mBuffer;
 
-  public CopperheadPacket(int size)
-  {
-    this.mBuffer = new byte[size];
-    this.mBuffer[0] = ((byte)(size - 1));
-    setTag(incrementTag());
-  }
-
-  public CopperheadPacket(byte[] buffer) throws Exception
-  {
-    this.mBuffer = buffer;
-    if ((buffer.length < 3) || (getSize() > 63))
+    public CopperheadPacket(int size)
     {
-      StringBuilder localStringBuilder = new StringBuilder().append("Invalid packet buffer size: length = ").append(buffer.length);
-      if (buffer.length > 0);
-      for (String str = " : size = " + getSize(); ; str = "")
-        throw new Exception(str);
+        this.mBuffer = new byte[size];
+        this.mBuffer[0] = ((byte)(size - 1));
+        setTag(incrementTag());
     }
-    int i = getSize();
-    if (i > -1 + buffer.length)
-      throw new Exception("Invalid packet buffer size: length = " + buffer.length + " : size = " + i);
-  }
 
-  public byte[] getData()
-  {
-    return this.mBuffer;
-  }
+    public CopperheadPacket(byte[] buffer) throws Exception
+    {
+        this.mBuffer = buffer;
+        if ((buffer.length < 3) || (getSize() > 63))
+        {
+            StringBuilder localStringBuilder = new StringBuilder().append("Invalid packet buffer size: length = ").append(buffer.length);
+            if (buffer.length > 0);
+            for (String str = " : size = " + getSize(); ; str = "")
+                throw new Exception(str);
+        }
+        int i = getSize();
+        if (i > -1 + buffer.length)
+            throw new Exception("Invalid packet buffer size: length = " + buffer.length + " : size = " + i);
+    }
 
-  public int getNotificationCode()
-  {
-    return this.mBuffer[2];
-  }
+    public byte[] getData()
+    {
+        return this.mBuffer;
+    }
 
-  public byte[] getPayload(int paramInt) throws Exception
-  {
-    int i = getPayloadSize();
-    int j = paramInt + 3;
-    if (j > i + 3)
-      throw new Exception("Invalid packet buffer size");
-    return Arrays.copyOfRange(this.mBuffer, j, i + 3);
-  }
+    public int getNotificationCode()
+    {
+        return this.mBuffer[2];
+    }
 
-  public ByteBuffer getPayloadBuffer()
-  {
-    ByteBuffer localByteBuffer = ByteBuffer.wrap(this.mBuffer, 3, -3 + this.mBuffer.length);
-    localByteBuffer.order(ByteOrder.LITTLE_ENDIAN);
-    return localByteBuffer;
-  }
+    public byte[] getPayload(int paramInt) throws Exception
+    {
+        int i = getPayloadSize();
+        int j = paramInt + 3;
+        if (j > i + 3)
+            throw new Exception("Invalid packet buffer size");
+        return Arrays.copyOfRange(this.mBuffer, j, i + 3);
+    }
 
-  public int getPayloadSize()
-  {
-    return -2 + (this.mBuffer[0] & 0xFF);
-  }
+    public ByteBuffer getPayloadBuffer() {
+//        Logger.i("Pre" + String.format("0x%02X", mBuffer[4]));
+        ByteBuffer localByteBuffer = ByteBuffer.wrap(this.mBuffer, 3, -3 + this.mBuffer.length);
+//        Logger.i("In" + String.format("0x%02X", mBuffer[4]));
+        localByteBuffer.order(ByteOrder.LITTLE_ENDIAN);
+//        Logger.i("Post" + String.format("0x%02X", mBuffer[4]));
+        return localByteBuffer;
+    }
 
-  public int getResponseStatus()
-  {
-    return this.mBuffer[2];
-  }
+    public int getPayloadSize()
+    {
+        return -2 + (this.mBuffer[0] & 0xFF);
+    }
 
-  public int getSize()
-  {
-    return (this.mBuffer[0] & 0xFF);
-  }
+    public int getResponseStatus()
+    {
+        return this.mBuffer[2];
+    }
 
-  public int getTag()
-  {
-    return this.mBuffer[1];
-  }
+    public int getSize()
+    {
+        return (this.mBuffer[0] & 0xFF);
+    }
 
-  protected byte incrementTag()
-  {
-    mTag = (byte)(1 + mTag);
-    if (mTag == -1)
-      mTag = 0;
-    return mTag;
-  }
+    public int getTag()
+    {
+        return this.mBuffer[1];
+    }
 
-  public void setOpcode(byte paramByte)
-  {
-    this.mBuffer[2] = paramByte;
-  }
+    protected byte incrementTag()
+    {
+        mTag = (byte)(1 + mTag);
+        if (mTag == -1)
+            mTag = 0;
+        return mTag;
+    }
 
-  public void setTag(byte paramByte)
-  {
-    this.mBuffer[1] = paramByte;
-  }
+    public void setOpcode(byte paramByte)
+    {
+        this.mBuffer[2] = paramByte;
+    }
 
-  public void writePayloadTo(ByteArrayOutputStream paramByteArrayOutputStream, int paramInt) throws Exception
-  {
-    int i = getPayloadSize();
-    int j = paramInt + 3;
-    if ((j >= i + 3) || (j >= this.mBuffer.length))
-      throw new Exception("Invalid packet buffer size");
-    paramByteArrayOutputStream.write(this.mBuffer, j, i - paramInt);
-  }
+    public void setTag(byte paramByte)
+    {
+        this.mBuffer[1] = paramByte;
+    }
+
+    public void writePayloadTo(ByteArrayOutputStream paramByteArrayOutputStream, int paramInt) throws Exception
+    {
+        int i = getPayloadSize();
+        int j = paramInt + 3;
+        if ((j >= i + 3) || (j >= this.mBuffer.length))
+            throw new Exception("Invalid packet buffer size");
+        paramByteArrayOutputStream.write(this.mBuffer, j, i - paramInt);
+    }
 }

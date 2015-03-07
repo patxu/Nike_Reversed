@@ -41,7 +41,6 @@ public class Utils
 			_logView = v;
 		}
 
-        //how do we get this working? TODO
 		private static void log2view( final String m ) {
 			if( _activity != null && _logView != null ){
 				_activity.runOnUiThread(new Runnable() {
@@ -131,21 +130,21 @@ public class Utils
         hashMap.put("CALORIES", 49);
         hashMap.put("STEPS", 50);
         hashMap.put("24HRCLOCK", 56);
+        hashMap.put("MENU_CALORIES", 57);
+        hashMap.put("MENU_STEPS", 58);
+        hashMap.put("MENU_GOAL", 59);
         hashMap.put("WEIGHT", 61);
         hashMap.put("HEIGHT", 62);
         hashMap.put("DOB", 63);
         hashMap.put("GENDER", 64);
+        hashMap.put("HANDEDNESS", 65);
         hashMap.put("ZONEOFFSET", 69);
         hashMap.put("DSTOFFSET", 70);
         hashMap.put("MOVE_REMINDER_HRS", 92);
         hashMap.put("HOURSWON", 90);
         hashMap.put("FIRST_NAME", 97);
-        hashMap.put("HANDEDNESS", 65);
         hashMap.put("IN_SESSION_LED", 99);
-        hashMap.put("MENU_CALORIES", 57);
         hashMap.put("MENU_FUELRATE", 60);
-        hashMap.put("MENU_GOAL", 59);
-        hashMap.put("MENU_STEPS", 58);
         hashMap.put("MENU_STARS", 89);
         hashMap.put("LIFETIME_FUEL", 94);
         hashMap.put("DISCOVERY_TOKEN", 75);
@@ -173,11 +172,8 @@ public class Utils
     
     protected static SettingType getSettingType(final int n) {
         switch (n) {
-            default: {
-                return SettingType.UINT32;
-            }
-            case 0:
-            case 97: {
+            case 0: //serial number
+            case 97: { //first name
                 return SettingType.STRING;
             }
             case 3:
@@ -186,14 +182,15 @@ public class Utils
                 return SettingType.BYTE;
             }
             case 2:
-            case 8:
-            case 9:
+            case 8: //row balance
+            case 9: //dot correction
             case 10:
             case 75: {
                 return SettingType.BYTE_ARRAY;
             }
-            case 63: {
-                return SettingType.DOB_CALENDAR;
+            case 48: //fuel
+            case 61: { //weight
+                return SettingType.UINT32;
             }
             case 56:
             case 57:
@@ -202,6 +199,9 @@ public class Utils
             case 60:
             case 89: {
                 return SettingType.BOOLEAN;
+            }
+            case 63: {
+                return SettingType.DOB_CALENDAR;
             }
             case 64: {
                 return SettingType.GENDER;
@@ -218,8 +218,8 @@ public class Utils
             case 62: {
                 return SettingType.BYTE;
             }
-            case 61: {
-                return SettingType.UINT16;
+            default: {
+                return SettingType.UINT32;
             }
         }
     }
@@ -234,7 +234,7 @@ public class Utils
         HOURS, 
         STRING, 
         UINT16, 
-        UINT32;
+        UINT32
     }
 	
 	public static void processGetSettingsResponse(byte[] raw) throws Exception {
@@ -274,13 +274,13 @@ public class Utils
                 switch (getSettingType(configKey)) 
                 {
                     case BYTE: {
-                    	Logger.i( "Got setting: " + settingKey + " = " + ( byteBuffer.get() & 0xFF ) );                        
+                    	Logger.i( "Got BYTE setting: " + settingKey + " = " + ( byteBuffer.get() & 0xFF ) );
                         break;
                     }
                     case BYTE_ARRAY: {
                         final byte[] array = new byte[valueSize];
                         byteBuffer.get(array);
-                    	Logger.i( "Got setting: " + settingKey + " = " + Utils.bytesToHex(array) );                                                
+                    	Logger.i( "Got BYTE_ARRAY setting: " + settingKey + " = " + Utils.bytesToHex(array) );
                         break;
                     }
                     case STRING: {
@@ -288,24 +288,24 @@ public class Utils
                         byteBuffer.get(array2);
                         byte b2;
                         for (b2 = 0; b2 < valueSize && array2[b2] != 0; ++b2) {}
-                    	Logger.i( "Got setting: " + settingKey + " = " + new String(array2, 0, b2, Charset.forName("US-ASCII")) );                                                
+                    	Logger.i( "Got STRING setting: " + settingKey + " = " + new String(array2, 0, b2, Charset.forName("US-ASCII")) );
                         break;
                     }
                     case UINT32: {
-                    	Logger.i( "Got setting: " + settingKey + " = " + byteBuffer.getInt() );                        
+                    	Logger.i( "Got UINT32 setting: " + settingKey + " = " + byteBuffer.getInt() );
                         break;
                     }
                     case UINT16: {
-                    	Logger.i( "Got setting: " + settingKey + " = " + byteBuffer.getShort() );                        
+                    	Logger.i( "Got UINT16 setting: " + settingKey + " = " + byteBuffer.getShort() );
                         break;
                     }
                     case BOOLEAN: {
-                    	Logger.i( "Got setting: " + settingKey + " = " + ( byteBuffer.get() == 0 ? "false" : "true" ) );                        
+                    	Logger.i( "Got BOOLEAN setting: " + settingKey + " = " + ( byteBuffer.get() == 0 ? "false" : "true" ) );
                         break;
                     }
                     case DOB_CALENDAR: {
                         final int int1 = byteBuffer.getInt();
-                    	Logger.i( "Got setting: " + settingKey + " = " + ( new GregorianCalendar(int1 & 0xFFFF, -1 + (0xFF & int1 >>> 16), int1 >>> 24) ) );                        
+                    	Logger.i( "Got DOB_CALENDAR setting: " + settingKey + " = " + ( new GregorianCalendar(int1 & 0xFFFF, -1 + (0xFF & int1 >>> 16), int1 >>> 24) ) );
                         break;
                     }
                     case GENDER: {
