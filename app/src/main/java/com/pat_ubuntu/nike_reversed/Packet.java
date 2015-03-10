@@ -57,8 +57,8 @@ public class Packet
 		String s = "";
 		
 		s += "[" + getProtocolLayer() + "] ";
-		s += "COUNT=" + getPacketCount() + " ";
-		s += "INDEX=" + getPacketIndex() + " ";
+		s += "COUNT=" + getPacketCount() + " "; //returns the 2 right bits since 0x3 is 0011
+		s += "INDEX=" + getPacketIndex() + " "; //returns buffer[0]>>>2 - what's the point of the & ?
 		s += "SEQN=" + getSequenceNumber() + " : ";
 		
 		char[] HEX = "0123456789ABCDEF".toCharArray();
@@ -73,7 +73,8 @@ public class Packet
         
 		return s;
 	}
-	
+
+    //the buffer is of bytes so does it first cast to binary representation of an int?
     public int getPacketCount() {
         return 0x3 & _buffer[0];
     }

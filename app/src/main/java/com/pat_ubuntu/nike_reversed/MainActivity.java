@@ -236,6 +236,7 @@ public class MainActivity extends ActionBarActivity
                                     @Override
                                     public void onData(Packet config) {
                                         byte[] raw = config.getBuffer();
+//                                        Logger.i("SETTING: " + config.toString());
 
                                         try
                                         {
@@ -251,14 +252,14 @@ public class MainActivity extends ActionBarActivity
 
                             // Cmd_UploadGraphic
                             private void uploadGraphic( BLEIoQueue queue, Bitmap map){ //uploadGraphic.smali line ~1620 might be important
-                                int size = map.getRowBytes() * map.getHeight();
-                                String string = size + "";
-                                Logger.i("Size: " + string);
-                                CopperheadPacket oppacket = new CopperheadPacket(size); //what's the length?
-                                oppacket.setOpcode((byte)21); //0x15
+//                                int size = map.getByteCount(); //map.getRowBytes() * map.getHeight();
+//                                String string = size + "";
+//                                Logger.i("Size: " + string);
+                                CopperheadPacket oppacket = new CopperheadPacket(map.getByteCount() + 4); //why +4?
+                                oppacket.setOpcode((byte)21); //0x15; opcode for upload_graphic
                                 ByteBuffer b = oppacket.getPayloadBuffer();
                                 b.put((byte)1); //what's the 1 for?
-
+                                map.copyPixelsToBuffer(b); //copy bitmap into bytebuffer
 
 
                                 Packet p = Packet.wrap(oppacket);
@@ -269,10 +270,47 @@ public class MainActivity extends ActionBarActivity
                                 addPacket(queue, p.getBuffer(), new BLEIoOperation.OnResponseCallback() {
                                     @Override
                                     public void onData(Packet packet) { //add to queue, wait for magic?
-                                        Logger.i("GRAPHICS: " + packet.toString());
+                                        Logger.i("GRAPHICS: " + packet.toString()); //count, index, sequ?
                                     }
                                 });
                             }
+
+                            /*public class Cmd_UploadGraphic extends com.nike.nikerf.protocol.a
+                            {
+                                public Cmd_UploadGraphic()
+                                {
+                                }
+
+                                public NikeMessage decode(NikeTransaction paramNikeTransaction)
+                                        throws ProtocolCoderException
+                                {
+                                    NikeRequest localNikeRequest = paramNikeTransaction.getRequest();
+                                    NikeProtocolCoder_Copperhead.processGenericResponse(paramNikeTransaction, localNikeRequest);
+                                    return localNikeRequest;
+                                }
+
+                                public void encode(NikeTransaction paramNikeTransaction)
+                                        throws ProtocolCoderException
+                                {
+                                    NikeRequest localNikeRequest = paramNikeTransaction.getRequest();
+                                    if (!(localNikeRequest.requestData instanceof UploadGraphic))
+                                        throw new IllegalArgumentException("request object is class " + localNikeRequest.requestData.getClass().getName() + ". Expected UploadGraphic");
+                                    UploadGraphic localUploadGraphic = (UploadGraphic)localNikeRequest.requestData;
+                                    if (localUploadGraphic.payload == null)
+                                        throw new ProtocolCoderException("Invalid parameter");
+                                    if (localUploadGraphic.payload.length > 127)
+                                        throw new ProtocolCoderException("payload is too big (>127).");
+                                    CopperheadPacket localCopperheadPacket = new CopperheadPacket(7 + localUploadGraphic.payload.length);
+                                    localCopperheadPacket.setOpcode((byte)21);
+                                    ByteBuffer localByteBuffer = localCopperheadPacket.getPayloadBuffer();
+                                    localByteBuffer.put(localUploadGraphic.index);
+                                    localByteBuffer.putShort(localUploadGraphic.address);
+                                    localByteBuffer.put((byte)localUploadGraphic.payload.length);
+                                    localByteBuffer.put(localUploadGraphic.payload);
+                                    NikeProtocolCoder_Copperhead.addNewOperationToTransaction(paramNikeTransaction, CommandResponseOperation.ProtocolLayer.COMMAND, localCopperheadPacket.getData());
+                                }
+                            }*/
+
 
                             @Override
                             public void onServicesDiscovered(BLEIoQueue queue, BluetoothGatt gatt, int status) {
@@ -419,8 +457,8 @@ public class MainActivity extends ActionBarActivity
 //                                                                requestSetting( fq, Utils.getSettingCode( "BAND_COLOR" );
 
                                                                 // why is this unintelligible?
-                                                                requestSetting( fq, Utils.getSettingCode( "FUEL" ) );
-//                                                                requestSetting( fq, Utils.getSettingCode( "FIRST_NAME" ) );
+//                                                                requestSetting( fq, Utils.getSettingCode( "FUEL" ) );
+                                                                requestSetting( fq, Utils.getSettingCode( "FIRST_NAME" ) );
 ////                                                                requestSetting( fq, Utils.getSettingCode( "SERIAL_NUMBER" ) );
 //
 //                                                                //UPLOAD GRAPHIC TESTING
