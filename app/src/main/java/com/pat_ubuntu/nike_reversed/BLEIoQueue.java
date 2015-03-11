@@ -82,6 +82,8 @@ public class BLEIoQueue extends BluetoothGattCallback
 			desc.setValue(data);
 						
 			ok = _gatt.writeDescriptor(desc);
+
+//            Logger.d(">> " + desc.toString());
 		}
 		else if( op.get_type() == Type.WRITE_CHARACTERISTICS )
 		{			

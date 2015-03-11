@@ -58,15 +58,15 @@ public class Packet
 		
 		s += "[" + getProtocolLayer() + "] ";
 		s += "COUNT=" + getPacketCount() + " "; //returns the 2 right bits since 0x3 is 0011
-		s += "INDEX=" + getPacketIndex() + " "; //returns buffer[0]>>>2 - what's the point of the & ?
+		s += "INDEX=" + getPacketIndex() + " "; //if we & with 0011 what's the point of >> 2? always get 0
 		s += "SEQN=" + getSequenceNumber() + " : ";
 		
 		char[] HEX = "0123456789ABCDEF".toCharArray();
         char[] hexChars = new char[( _buffer.length - 1 ) * 2];
         for ( int j = 1; j < _buffer.length; j++ ) {
-            int v = _buffer[j] & 0xFF;
-            hexChars[(j - 1) * 2] = HEX[v >>> 4];
-            hexChars[(j - 1) * 2 + 1] = HEX[v & 0x0F];
+            int v = _buffer[j] & 0xFF; //get right 8 bits
+            hexChars[(j - 1) * 2] = HEX[v >>> 4]; //get left 4 bits
+            hexChars[(j - 1) * 2 + 1] = HEX[v & 0x0F]; //get right 4 bits
         }
         
         s += new String(hexChars);

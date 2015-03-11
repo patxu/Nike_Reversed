@@ -189,6 +189,7 @@ public class MainActivity extends ActionBarActivity
 
                         Logger.i( "Connecting to GATT server ..." );
 
+                        //creates the queue
                         _ioqueue = new BLEIoQueue( new BLEIoQueue.QueueCallbacks() {
                             private BluetoothGattService	    _CopperheadService = null;
                             private BluetoothGattCharacteristic _CommandChannel = null;//where we write commands
@@ -199,11 +200,15 @@ public class MainActivity extends ActionBarActivity
                                 BLEIoOperation op = new BLEIoOperation( BLEIoOperation.Type.WRITE_CHARACTERISTICS, "Sending command.", callback );
 
                                 op.set_data( data );
-                                op.set_characteristic( _CommandChannel );
+//                                String string = _CommandChannel.toString() + "";
+//                                Logger.i("CHARACTERISTIC: " + op.get_characteristic());
+//                                Logger.i("DESCRIPTION: " + op.get_description());
+                                op.set_characteristic( _CommandChannel ); //what is this command channel?
 
                                 queue.add(op);
                             }
 
+                            //puts a string of numbers into a byte array and then calls addPacket; assumes string s is even
                             private void addPacket( BLEIoQueue queue, String s, BLEIoOperation.OnResponseCallback callback ){
                                 byte[] buffer = new byte[ s.length() / 2 ];
 
@@ -214,12 +219,14 @@ public class MainActivity extends ActionBarActivity
 
                                 addPacket( queue, buffer, callback );
                             }
-
-                            // Cmd_Settings_Get
-                            // create the needed packet to request a specific setting from the device
+                            /*
+                            Cmd_Settings_Get
+                            create the needed packet to request a specific setting from the device
+                            encoding found in NikeProtocolCoder_Copperhead.java line 1504
+                            */
                             private void requestSetting( BLEIoQueue queue, int code )
                             {
-                                CopperheadPacket oppacket = new CopperheadPacket(5);
+                                CopperheadPacket oppacket = new CopperheadPacket(5); //line 1519
                                 oppacket.setOpcode((byte)10); //OPCODE_SETTING_GET is 0xa
                                 ByteBuffer b = oppacket.getPayloadBuffer();
                                 b.put( (byte)1 );
@@ -235,6 +242,8 @@ public class MainActivity extends ActionBarActivity
                                 addPacket( queue, p.getBuffer(), new BLEIoOperation.OnResponseCallback() {
                                     @Override
                                     public void onData(Packet config) {
+                                        Logger.i("CONFIG: " + config.toString());
+
                                         byte[] raw = config.getBuffer();
 //                                        Logger.i("SETTING: " + config.toString());
 
@@ -250,8 +259,37 @@ public class MainActivity extends ActionBarActivity
                                 } );
                             }
 
-                            // Cmd_UploadGraphic
-                            private void uploadGraphic( BLEIoQueue queue, Bitmap map){ //uploadGraphic.smali line ~1620 might be important
+                            // Battery_State; always returns 4 bytes then 00- what does this mean?
+                            // doesn't work yet
+                            private void batteryState( BLEIoQueue queue){
+                                CopperheadPacket oppacket = new CopperheadPacket(5);
+                                oppacket.setOpcode((byte)6);
+                                ByteBuffer b = oppacket.getPayloadBuffer();
+                                b.put((byte)1);
+
+
+                                Packet p = Packet.wrap(oppacket);
+
+                                p.setProtocolLayer( CommandResponseOperation.ProtocolLayer.COMMAND );
+                                p.setPacketCount(0); // not sure what these next 3 lines do; used both above and in auth
+                                p.setPacketIndex(0);
+                                p.setSequenceNumber(1);
+
+                                Logger.i("BAT PACKET: " + p.toString());
+                                //(packet adds ot queue, p.getBuffer is new BLEIoOperation data, callback response)
+                                addPacket(queue, p.getBuffer(), new BLEIoOperation.OnResponseCallback() {
+                                    @Override
+                                    public void onData(Packet packet) { //add to queue, wait for magic?
+                                        Logger.i("BATTERY: " + packet.toString()); //count, index, sequ?
+                                    }
+                                });
+                            }
+
+                            /*
+                            Cmd_UploadGraphic; subclass of GenericMemoryBlock
+                            line 1861
+                            */
+                            private void uploadGraphic( BLEIoQueue queue, Bitmap map){ //uploadGraphic.smali
 //                                int size = map.getByteCount(); //map.getRowBytes() * map.getHeight();
 //                                String string = size + "";
 //                                Logger.i("Size: " + string);
@@ -263,10 +301,14 @@ public class MainActivity extends ActionBarActivity
 
 
                                 Packet p = Packet.wrap(oppacket);
-                                p.setPacketCount(0); // not sure what these 3 methods are for; used above and in auth
+
+                                p.setProtocolLayer( CommandResponseOperation.ProtocolLayer.COMMAND );
+                                p.setPacketCount(0); // not sure what these next 3 lines do; used both above and in auth
                                 p.setPacketIndex(0);
                                 p.setSequenceNumber(1);
 
+                                Logger.i("BITMAP PACKET: " + p.toString());
+                                //(packet adds ot queue, p.getBuffer is new BLEIoOperation data, callback response)
                                 addPacket(queue, p.getBuffer(), new BLEIoOperation.OnResponseCallback() {
                                     @Override
                                     public void onData(Packet packet) { //add to queue, wait for magic?
@@ -275,7 +317,8 @@ public class MainActivity extends ActionBarActivity
                                 });
                             }
 
-                            /*public class Cmd_UploadGraphic extends com.nike.nikerf.protocol.a
+                            /*
+                            public class Cmd_UploadGraphic extends com.nike.nikerf.protocol.a
                             {
                                 public Cmd_UploadGraphic()
                                 {
@@ -309,7 +352,26 @@ public class MainActivity extends ActionBarActivity
                                     localByteBuffer.put(localUploadGraphic.payload);
                                     NikeProtocolCoder_Copperhead.addNewOperationToTransaction(paramNikeTransaction, CommandResponseOperation.ProtocolLayer.COMMAND, localCopperheadPacket.getData());
                                 }
-                            }*/
+                            }
+*/
+/*
+
+                            Sample log output
+
+                            03-10 18:10:58.422  27527-27540/com.pat_ubuntu.nike_reversed I/BLEHACKS﹕ GRAPHICS: [COMMAND] COUNT=1 INDEX=1 SEQN=3 : 000000000000000000000000000000000000
+                            03-10 18:10:58.492  27527-27540/com.pat_ubuntu.nike_reversed I/BLEHACKS﹕ GRAPHICS: [COMMAND] COUNT=0 INDEX=0 SEQN=4 : 012200000000000000000000000000000000
+                            03-10 18:13:57.132  27527-27540/com.pat_ubuntu.nike_reversed I/BLEHACKS﹕ GRAPHICS: [COMMAND] COUNT=1 INDEX=1 SEQN=5 : 9E0600000000000000000000000000000000
+                            03-10 18:14:02.242  27527-27540/com.pat_ubuntu.nike_reversed I/BLEHACKS﹕ GRAPHICS: [COMMAND] COUNT=1 INDEX=1 SEQN=6 : 9E0600000000000000000000000000000000
+                            03-10 18:14:07.242  27527-27540/com.pat_ubuntu.nike_reversed I/BLEHACKS﹕ GRAPHICS: [COMMAND] COUNT=1 INDEX=1 SEQN=7 : 9E0600000000000000000000000000000000
+                            03-10 18:14:13.282  27527-27540/com.pat_ubuntu.nike_reversed I/BLEHACKS﹕ GRAPHICS: [COMMAND] COUNT=1 INDEX=1 SEQN=1 : 9E0600000000000000000000000000000000
+                            03-10 18:14:18.282  27527-27540/com.pat_ubuntu.nike_reversed I/BLEHACKS﹕ GRAPHICS: [COMMAND] COUNT=1 INDEX=1 SEQN=2 : 9E0600000000000000000000000000000000
+
+                            03-10 18:19:53.292  27527-27540/com.pat_ubuntu.nike_reversed I/BLEHACKS﹕ GRAPHICS: [COMMAND] COUNT=1 INDEX=1 SEQN=4 : 9E0600000000000000000000000000000000
+                            03-10 18:19:54.142  27527-27539/com.pat_ubuntu.nike_reversed I/BLEHACKS﹕ GRAPHICS: [COMMAND] COUNT=0 INDEX=0 SEQN=5 : 0CFFFF0324E900000E9C14D53C0000000000
+                            03-10 18:19:54.152  27527-27540/com.pat_ubuntu.nike_reversed I/BLEHACKS﹕ GRAPHICS: [COMMAND] COUNT=0 INDEX=0 SEQN=6 : 0CFFFF0350E900000E9C14D53C0000000000
+                            03-10 18:19:54.162  27527-27540/com.pat_ubuntu.nike_reversed I/BLEHACKS﹕ GRAPHICS: [COMMAND] COUNT=1 INDEX=1 SEQN=7 : 9E0600000000000000000000000000000000
+
+*/
 
 
                             @Override
@@ -458,7 +520,8 @@ public class MainActivity extends ActionBarActivity
 
                                                                 // why is this unintelligible?
 //                                                                requestSetting( fq, Utils.getSettingCode( "FUEL" ) );
-                                                                requestSetting( fq, Utils.getSettingCode( "FIRST_NAME" ) );
+
+                                                                requestSetting( fq, Utils.getSettingCode( "BLE_POWER_LEVEL" ) );
 ////                                                                requestSetting( fq, Utils.getSettingCode( "SERIAL_NUMBER" ) );
 //
 //                                                                //UPLOAD GRAPHIC TESTING
@@ -466,8 +529,10 @@ public class MainActivity extends ActionBarActivity
 //                                                                requestSetting( fq, Utils.getSettingCode( "WEIGHT" ) );
 //                                                                requestSetting( fq, Utils.getSettingCode( "LED_ROW_BALANCE" ) );
 //                                                                requestSetting( fq, Utils.getSettingCode( "LED_DOT_CORRECTION" ) );
+
+                                                                //there's a 5x20 and 1x20 LED array
                                                                 Bitmap.Config conf = Bitmap.Config.ARGB_8888;
-                                                                int w = 15; //total guess
+                                                                int w = 20; //total guess
                                                                 int h = 5; //maybe 5 tall?
 
                                                                 Bitmap map = Bitmap.createBitmap(w, h, conf);
@@ -476,8 +541,9 @@ public class MainActivity extends ActionBarActivity
                                                                         map.setPixel(i, j, Color.BLACK);
                                                                     }
                                                                 }
-                                                                uploadGraphic(fq, map);
+//                                                                uploadGraphic(fq, map);
 
+                                                                batteryState(fq);
                                                             }
                                                             else {
                                                                 Logger.e( "Authentication failure, reply: " + reply );
